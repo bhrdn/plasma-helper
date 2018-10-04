@@ -19,6 +19,15 @@ usage() {
 	# how to use plasma-helper
 }
 
+compile() {
+	g++ -std=c++11 ${1} -o ${1//.cpp}
+
+	[[ ! $? -eq 0 ]] && {
+		echo "ERROR: Failed to compile the program"
+		exit 1
+	}
+}
+
 ## Argv parser
 while [ "$1" != "" ]; do
     argv=`echo $1 | awk -F= '{print $1}'`
@@ -31,7 +40,28 @@ while [ "$1" != "" ]; do
 			echo ${TEMPLATE} | base64 -d | gunzip | sed "s/{author}/$(whoami)/g" >> ${val}
             ;;
         -d | --deploy)
-			# compile and run testcase
+			[[ ! `echo ${val} | cut -d'.' -f2` = cpp ]] && {
+				echo "ERROR: The extension must be .cpp"
+				exit 1
+			}
+
+			compile ${val}
+
+			n=1
+			for case in `ls | grep txt`; do
+				result=`cat ${case} | head -n $(cat ${case} | wc -l) | ./${val//.cpp}`
+
+				if [[ ${result} = `cat ${case} | tail -n 1` ]]; then
+					echo ">> CASE #${n} [PASSED]"
+				else
+					echo ">> CASE #${n} [FAILED]"
+				fi
+
+				(( n++ ))
+			done;
+
+			rm ${val//.cpp}
+
             ;;
         *)
             exit 1
@@ -45,28 +75,3 @@ done
 	echo "[!] Usage: plasma-helper [-c create file from template] [-d check testcase result] || [-h help]"
 	exit 1
 }
-
-[[ ! `echo ${1} | cut -d'.' -f2` = cpp ]] && {
-	echo "ERROR: The extension must be .cpp"
-	exit 1
-}
-
-g++ -std=c++11 ${1} -o ${1//.cpp}
-
-[[ ! $? -eq 0 ]] && {
-	echo "ERROR: Failed to compile the program"
-	exit 1
-}
-
-n=1
-for case in `ls | grep txt`; do
-	result=`cat ${case} | head -n $(cat ${case} | wc -l) | ./${1//.cpp}`
-
-	if [[ ${result} = `cat ${case} | tail -n 1` ]]; then
-		echo ">> CASE #${n} [PASSED]"
-	else
-		echo ">> CASE #${n} [FAILED]"
-	fi
-
-	(( n++ ))
-done;
