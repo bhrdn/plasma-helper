@@ -1,19 +1,60 @@
 #!/bin/bash
 
+## Define all variable
+BANNER="X19fX19fIF8gICAgICAgICAgICAgICAgICAgICAgICAgICAgIF8gICBfICAgICAgXyAgICAgICAgICAgICAgICAgCnwgX19fIFwgfCAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgfCB8IHwgICAgfCB8ICAgICAgICAgICAgICAgIAp8IHxfLyAvIHwgX18gXyBfX18gXyBfXyBfX18gICBfXyBfICB8IHxffCB8IF9fX3wgfF8gX18gICBfX18gXyBfXyAKfCAgX18vfCB8LyBfYCAvIF9ffCAnXyBgIF8gXCAvIF9gIHwgfCAgXyAgfC8gXyBcIHwgJ18gXCAvIF8gXCAnX198CnwgfCAgIHwgfCAoX3wgXF9fIFwgfCB8IHwgfCB8IChffCB8IHwgfCB8IHwgIF9fLyB8IHxfKSB8ICBfXy8gfCAgIApcX3wgICB8X3xcX18sX3xfX18vX3wgfF98IHxffFxfXyxffCBcX3wgfF8vXF9fX3xffCAuX18vIFxfX198X3wgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgfCAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB8X3wgWyB2ZXJzaW9uIF0K"
+TEMPLATE="H4sIAO/4tVsAA0WP3UrDQBCFrztPMbRCYwrGaxNFxCKCeOedsGx2J81iOgn7A5GSd3eT2i0MO8N39hxmihxyfJbBt73F07lPkBcAG8OqC5qwqo13hfNa7XZ37RMEZ/iALI/kBqkIo1LG75oaw4Sv+5evN/Q2UEI32XiLJ9NgtohxVn3wWFUoxMf7516IeV4/4HruY4kXmVh35TSlILEEXdTNuNjw8d93dVy3GWocgmtFLdVPgo2JZZ1PwM2letaJzDm4/eYtgP8dKFLs+nj1+enivYY9HqXhLG4EK4CVJR8s430J0x/K6pV+VQEAAA=="
+VERSION="v0.1"
+
+## Define func
+resize() {
+	printf '\033[8;40;100t'
+}
+
+banner() {
+	echo ${BANNER} | base64 -d | sed "s/version/${VERSION}/g"
+}
+
+usage() {
+	banner
+	# how to use plasma-helper
+}
+
+## Argv parser
+while [ "$1" != "" ]; do
+    argv=`echo $1 | awk -F= '{print $1}'`
+    val=`echo $2 | sed 's/^[^=]*=//g'`
+    case $argv in
+        -h | --help)
+			usage && exit 1
+            ;;
+        -c | --create)
+			echo ${TEMPLATE} | base64 -d | gunzip | sed "s/{author}/$(whoami)/g" >> ${val}
+            ;;
+        -d | --deploy)
+			# compile and run testcase
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
+    shift
+done
+
 [[ $# -ne 1 ]] && {
-	echo "[!] Usage: plasma-helper example.cpp"
+	resize
+	echo "[!] Usage: plasma-helper [-c create file from template] [-d check testcase result] || [-h help]"
 	exit 1
 }
 
 [[ ! `echo ${1} | cut -d'.' -f2` = cpp ]] && {
-	echo "[x] The extension must be .cpp"
+	echo "ERROR: The extension must be .cpp"
 	exit 1
 }
 
 g++ -std=c++11 ${1} -o ${1//.cpp}
 
 [[ ! $? -eq 0 ]] && {
-	echo "[x] Failed to compile the program"
+	echo "ERROR: Failed to compile the program"
 	exit 1
 }
 
