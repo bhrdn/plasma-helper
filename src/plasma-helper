@@ -4,8 +4,9 @@
 BANNER="X19fX19fIF8gICAgICAgICAgICAgICAgICAgICAgICAgICAgIF8gICBfICAgICAgXyAgICAgICAgICAgICAgICAgCnwgX19fIFwgfCAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgfCB8IHwgICAgfCB8ICAgICAgICAgICAgICAgIAp8IHxfLyAvIHwgX18gXyBfX18gXyBfXyBfX18gICBfXyBfICB8IHxffCB8IF9fX3wgfF8gX18gICBfX18gXyBfXyAKfCAgX18vfCB8LyBfYCAvIF9ffCAnXyBgIF8gXCAvIF9gIHwgfCAgXyAgfC8gXyBcIHwgJ18gXCAvIF8gXCAnX198CnwgfCAgIHwgfCAoX3wgXF9fIFwgfCB8IHwgfCB8IChffCB8IHwgfCB8IHwgIF9fLyB8IHxfKSB8ICBfXy8gfCAgIApcX3wgICB8X3xcX18sX3xfX18vX3wgfF98IHxffFxfXyxffCBcX3wgfF8vXF9fX3xffCAuX18vIFxfX198X3wgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgfCAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB8X3wgWyB2ZXJzaW9uIF0K"
 TEMPLATE="H4sIAO/4tVsAA0WP3UrDQBCFrztPMbRCYwrGaxNFxCKCeOedsGx2J81iOgn7A5GSd3eT2i0MO8N39hxmihxyfJbBt73F07lPkBcAG8OqC5qwqo13hfNa7XZ37RMEZ/iALI/kBqkIo1LG75oaw4Sv+5evN/Q2UEI32XiLJ9NgtohxVn3wWFUoxMf7516IeV4/4HruY4kXmVh35TSlILEEXdTNuNjw8d93dVy3GWocgmtFLdVPgo2JZZ1PwM2letaJzDm4/eYtgP8dKFLs+nj1+enivYY9HqXhLG4EK4CVJR8s430J0x/K6pV+VQEAAA=="
 VERSION="v0.1"
+CASE=1
 
-## Define func
+## Define all func
 resize() {
 	printf '\033[8;40;100t'
 }
@@ -28,7 +29,25 @@ compile() {
 	}
 }
 
-## Argv parser
+testcase() {
+	result=`cat ${1} | ./${3}`
+
+	if [[ ${result} = `cat plasma-out-${2}` ]]; then
+		echo "#CASE-${CASE} [PASSED]"
+	else 
+		echo "#CASE-${CASE} [FAILED]"
+	fi
+
+	(( CASE++ ))
+}
+
+## Main
+[[ $# -eq 0 ]] && {
+	resize
+	echo "[!] Usage: plasma-helper [-c create file from template] [-d check testcase result] || [-h help]"
+	exit 1
+}
+
 while [ "$1" != "" ]; do
     argv=`echo $1 | awk -F= '{print $1}'`
     val=`echo $2 | sed 's/^[^=]*=//g'`
@@ -36,6 +55,23 @@ while [ "$1" != "" ]; do
         -h | --help)
 			usage && exit 1
             ;;
+        -i | --init)
+			banner
+			echo "[+] Create sample input"
+			read -p ">> press <enter> to continue"
+
+			# add new file for input
+			c=1
+			for i in `ls | grep plasma-in`; do
+				(( c++ ))
+			done;
+			nano plasma-in-${c}.txt
+			
+			# add new file for output
+			echo "[+] Create sample output"
+			read -p ">> press <enter> to continue"
+			nano plasma-out-${c}.txt
+			;;
         -c | --create)
 			echo ${TEMPLATE} | base64 -d | gunzip | sed "s/{author}/$(whoami)/g" >> ${val}
             ;;
@@ -47,31 +83,16 @@ while [ "$1" != "" ]; do
 
 			compile ${val}
 
-			n=1
-			for case in `ls | grep txt`; do
-				result=`cat ${case} | head -n $(cat ${case} | wc -l) | ./${val//.cpp}`
-
-				if [[ ${result} = `cat ${case} | tail -n 1` ]]; then
-					echo ">> CASE #${n} [PASSED]"
-				else
-					echo ">> CASE #${n} [FAILED]"
-				fi
-
-				(( n++ ))
+			for i in `ls | grep plasma-in`; do
+				out=`echo ${i} | cut -d'-' -f3`
+				testcase ${i} ${out} ${val//.cpp}
 			done;
 
 			rm ${val//.cpp}
-
             ;;
         *)
             exit 1
             ;;
     esac
     shift
-done
-
-[[ $# -ne 1 ]] && {
-	resize
-	echo "[!] Usage: plasma-helper [-c create file from template] [-d check testcase result] || [-h help]"
-	exit 1
-}
+done;
