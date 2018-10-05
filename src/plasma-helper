@@ -3,8 +3,11 @@
 ## Define all variable
 BANNER="X19fX19fIF8gICAgICAgICAgICAgICAgICAgICAgICAgICAgIF8gICBfICAgICAgXyAgICAgICAgICAgICAgICAgCnwgX19fIFwgfCAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgfCB8IHwgICAgfCB8ICAgICAgICAgICAgICAgIAp8IHxfLyAvIHwgX18gXyBfX18gXyBfXyBfX18gICBfXyBfICB8IHxffCB8IF9fX3wgfF8gX18gICBfX18gXyBfXyAKfCAgX18vfCB8LyBfYCAvIF9ffCAnXyBgIF8gXCAvIF9gIHwgfCAgXyAgfC8gXyBcIHwgJ18gXCAvIF8gXCAnX198CnwgfCAgIHwgfCAoX3wgXF9fIFwgfCB8IHwgfCB8IChffCB8IHwgfCB8IHwgIF9fLyB8IHxfKSB8ICBfXy8gfCAgIApcX3wgICB8X3xcX18sX3xfX18vX3wgfF98IHxffFxfXyxffCBcX3wgfF8vXF9fX3xffCAuX18vIFxfX198X3wgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgfCAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB8X3wgWyB2ZXJzaW9uIF0K"
 TEMPLATE="H4sIAO/4tVsAA0WP3UrDQBCFrztPMbRCYwrGaxNFxCKCeOedsGx2J81iOgn7A5GSd3eT2i0MO8N39hxmihxyfJbBt73F07lPkBcAG8OqC5qwqo13hfNa7XZ37RMEZ/iALI/kBqkIo1LG75oaw4Sv+5evN/Q2UEI32XiLJ9NgtohxVn3wWFUoxMf7516IeV4/4HruY4kXmVh35TSlILEEXdTNuNjw8d93dVy3GWocgmtFLdVPgo2JZZ1PwM2letaJzDm4/eYtgP8dKFLs+nj1+enivYY9HqXhLG4EK4CVJR8s430J0x/K6pV+VQEAAA=="
-VERSION="v0.1"
+VERSION="v1.1"
+MAX=`ls | grep plasma-in | wc -l`
 CASE=1
+CASE_PASSED=()
+CASE_FAILED=()
 
 ## Define all func
 resize() {
@@ -32,27 +35,31 @@ compile() {
 	echo -en "[*] Compiling the program... [OK]\n"
 }
 
+loader() {
+	let _progress=(${1}*100/${2}*100)/100
+    let _done=(${_progress}*4)/10
+    let _left=40-$_done
+	
+	_fill=$(printf "%${_done}s")
+    _empty=$(printf "%${_left}s")
+
+	printf "\r[${_fill// /\#}${_empty// /-}] ${3} - ${_progress}%%"
+}
+
 testcase() {
 	result=`cat ${1} | ./${3}`
+	_c=${2//.txt}
 
+	sleep 1
 	if [[ ${result} = `cat plasma-out-${2}` ]]; then
-		echo "#CASE-${CASE} [PASSED]"
+		CASE_PASSED+=(${_c})
+		loader ${_c} ${4} "${1} [PASSED]"
 	else 
-		echo "#CASE-${CASE} [FAILED]"
+		CASE_FAILED+=(${_c})
+		loader ${_c} ${4} "${1} [FAILED]"
 	fi
 
 	(( CASE++ ))
-}
-
-spinner() {
-	chars="/-\|"
-
-	while [[ 1 = ${1} ]]; do
-	  for (( i=0; i<${#chars}; i++ )); do
-	    sleep 0.1
-	    echo -en "[${chars:$i:1}]\r"
-	  done;
-	done;
 }
 
 ## Main
@@ -102,10 +109,20 @@ while [ "$1" != "" ]; do
 				exit 1
 			}
 
+			echo "" # endl
 			for i in `ls | grep plasma-in`; do
 				out=`echo ${i} | cut -d'-' -f3`
-				testcase ${i} ${out} ${val//.cpp}
+				testcase ${i} ${out} ${val//.cpp} ${MAX}
 			done;
+			echo "" && echo "" # endl
+			
+			echo "[INFO] ${MAX} tests, ${#CASE_PASSED[@]} passed, ${#CASE_FAILED[@]} failed"
+			
+			[[ ${#CASE_FAILED[@]} -ge 0 ]] && {
+				for i in ${CASE_FAILED[@]}; do
+					echo "[ERROR] CASE#${i} output should be" `cat plasma-out-${i}.txt`
+				done;
+			}
 
 			rm ${val//.cpp}
             ;;
