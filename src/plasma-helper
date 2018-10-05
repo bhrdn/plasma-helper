@@ -21,7 +21,7 @@ usage() {
 }
 
 compile() {
-	echo -en "[!] Compiling the program...\r"
+	echo -en "[!] Compiling the program... [??]\r"
 	g++ -std=c++11 ${1} -o ${1//.cpp}
 
 	[[ ! $? -eq 0 ]] && {
@@ -29,7 +29,7 @@ compile() {
 		exit 1
 	}
 	
-	echo -en "[*] Compiling the program... [OK]"
+	echo -en "[*] Compiling the program... [OK]\n"
 }
 
 testcase() {
@@ -42,6 +42,17 @@ testcase() {
 	fi
 
 	(( CASE++ ))
+}
+
+spinner() {
+	chars="/-\|"
+
+	while [[ 1 = ${1} ]]; do
+	  for (( i=0; i<${#chars}; i++ )); do
+	    sleep 0.1
+	    echo -en "[${chars:$i:1}]\r"
+	  done;
+	done;
 }
 
 ## Main
@@ -85,6 +96,11 @@ while [ "$1" != "" ]; do
 			}
 
 			compile ${val}
+
+			[[ ! -f plasma-in-1.txt ]] && {
+				echo "[!] File testcase not exist !!"
+				exit 1
+			}
 
 			for i in `ls | grep plasma-in`; do
 				out=`echo ${i} | cut -d'-' -f3`
