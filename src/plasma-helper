@@ -21,12 +21,15 @@ usage() {
 }
 
 compile() {
+	echo -en "[!] Compiling the program...\r"
 	g++ -std=c++11 ${1} -o ${1//.cpp}
 
 	[[ ! $? -eq 0 ]] && {
 		echo "ERROR: Failed to compile the program"
 		exit 1
 	}
+	
+	echo -en "[*] Compiling the program... [OK]"
 }
 
 testcase() {
